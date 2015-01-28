@@ -136,7 +136,6 @@ class SireAgenda
   end
 
 
-
   def parse_agenda(doc)
 
     agenda = {}

@@ -1,0 +1,17 @@
+$LOAD_PATH << File.expand_path("#{File.dirname(__FILE__)}/../lib")
+
+require 'sire_agenda'
+
+@sire = SireAgenda.new
+
+puts "*** Upcoming Meetings **"
+
+@sire.upcoming_meetings.values.each do |meeting|
+  puts "
+Meeting Id:   #{meeting.id}
+Group:        #{meeting.group}
+Meeting at:   #{meeting.meeting_time}
+Last changed: #{meeting.last_changed}
+"
+end
+
