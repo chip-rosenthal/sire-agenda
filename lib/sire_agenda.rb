@@ -172,7 +172,11 @@ class SireAgenda
         m = a["name"].match(/^Item([\d]+)$/)
         itemid = m[1].to_i
 
-        content = cols[1].children
+        content = cols[1].inner_html \
+          .cleanup_whitespace \
+          .gsub(/<(a|span) [^>]+>/, "") \
+          .gsub(/<\/(a|span)>/, "") \
+          .gsub(/<(p) [^>]+>/, "<\\1>")
 
         raise "section title missing or empty" if section.empty?
 

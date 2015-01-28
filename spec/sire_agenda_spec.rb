@@ -21,7 +21,7 @@ describe SireAgenda::Meeting do
 
   describe "#agenda_url" do
     it "produces agenda_url for the meeting" do
-      expect(@meeting.agenda_url).to eq("http://austin.siretechnologies.com/sirepub/mtgviewer.aspx?doctype=AGENDA&meetid=652")
+      expect(@meeting.agenda_url).to eq("#{SireAgenda::BASEURL}/mtgviewer.aspx?doctype=AGENDA&meetid=652")
     end
   end
 
@@ -34,12 +34,6 @@ describe SireAgenda::Meeting do
   end
 
 end
-
-#  describe "#url_item_backup"
-#    it "generates an URL from item id" do
-#      url = @sire.url_item_backup(999)
-#      expect(url).to match(/agdocs.aspx\?doctype=AGENDA&itemid=999$/)
-#    end
 
 
 describe SireAgenda do
@@ -56,7 +50,7 @@ describe SireAgenda do
 
   describe "#meeting_feed_url" do
     it "produces URL for the meeting feed" do
-      expect(@sire.meeting_feed_url).to eq("http://austin.siretechnologies.com/sirepub/rss/rss.aspx")
+      expect(@sire.meeting_feed_url).to eq("#{SireAgenda::BASEURL}/rss/rss.aspx")
     end
   end
 
@@ -100,8 +94,7 @@ describe SireAgenda do
       expect(item.id).to eq (38981)
       expect(item.num).to eq (10)
       expect(item.section).to eq ("Purchasing Office")
-      expect(item.content).to be_instance_of(Nokogiri::XML::NodeSet)
-      expect(item.content.length).to eq(5)
+      expect(item.content).to start_with("<p>Authorize award and execution of a 36-month")
 
     end
   end
