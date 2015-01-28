@@ -62,23 +62,20 @@ class SireAgenda
     # empty
   end
 
+  # URL of the document that contains the RSS feed of all meetings
   def meeting_feed_url
     "#{BASEURL}/rss/rss.aspx"
   end
 
+  # RSS feed of all meetings, fetched from the web, as a Nokogiri::XML::Document
+  def fetch_meeting_feed_doc
+      Nokogiri::XML(open(meeting_feed_url))
+  end
 
-  # Read the RSS feed and return all the upcoming meetings.
-  #
-  # Options:
-  #  * :source
-  #  * :cutoff
-  #
   # Returns a hash of Meeting instances, indexed on id.
-  def list_meetings(opts = {})
-    source = opts[:source] || meeting_feed_url
+  def upcoming_meetings(doc, opts = {})
     cutoff = opts[:cutoff] || Time.now
 
-    doc = Nokogiri::XML(open(source))
     meetings = {}
 
     doc.xpath("//item").each do |item|
@@ -108,7 +105,6 @@ class SireAgenda
         :meeting_time => meeting_time,
         :last_changed => pubdate,
       )
-
 
     end
 

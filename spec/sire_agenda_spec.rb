@@ -50,12 +50,27 @@ describe SireAgenda do
     end
   end
 
-  describe "#list_meetings" do
-    it "processes the RSS feed" do
-      source = "./examples/rss.aspx"
-      cutoff = Time.parse("2015-01-27T21:37:12-06:00")
+  describe "#meeting_feed_url" do
+    it "produces URL for the meeting feed" do
+      expect(@sire.meeting_feed_url).to eq("http://austin.siretechnologies.com/sirepub/rss/rss.aspx")
+    end
+  end
 
-      meetings = @sire.list_meetings(:source => source, :cutoff => cutoff)
+  describe "#fetch_meeting_feed_doc" do
+    if ENABLE_NETWORK_OPERATIONS
+      it "fetches the meeting feed" do
+        expect(@sire.fetch_meeting_feed_doc).to be_instance_of(Nokogiri::XML::Document)
+      end
+    end
+  end
+
+  describe "#upcoming_meetings" do
+    before(:each) do
+      @doc = Nokogiri::XML(open("./examples/rss.aspx"))
+    end
+    it "processes the RSS feed" do
+      cutoff = Time.parse("2015-01-27T21:37:12-06:00")
+      meetings = @sire.upcoming_meetings(@doc, :cutoff => cutoff)
       expect(meetings.length).to eq(5)
       expect(meetings.keys).to match_array([652, 657, 665, 666, 690])
 
@@ -64,15 +79,6 @@ describe SireAgenda do
       expect(meeting.group).to eq("Austin City Council")
       expect(meeting.meeting_time).to eq(Time.parse("2015-01-29T10:00:00-06:00"))
       expect(meeting.last_changed).to eq(Time.parse("2015-01-26T16:06:07-06:00"))
-    end
-    if ENABLE_NETWORK_OPERATIONS
-      it "fetches the RSS feed" do
-        meetings = @sire.list_meetings
-        expect(meetings).to be_instance_of(Hash)
-        expect(meetings).not_to be_empty
-        expect(meetings.keys).to be_array_of(Fixnum)
-        expect(meetings.values).to be_array_of(SireAgenda::Meeting)
-      end
     end
   end
 
