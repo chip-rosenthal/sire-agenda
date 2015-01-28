@@ -21,6 +21,14 @@ describe SireAgenda::Meeting do
     end
   end
 
+  describe "#fetch_agenda_doc" do
+    if ENABLE_NETWORK_OPERATIONS
+      it "fetches the agenda" do
+        expect(@meeting.fetch_agenda_doc).to be_instance_of(Nokogiri::HTML::Document)
+      end
+    end
+  end
+
 end
 
 #  describe "#url_item_backup"
@@ -64,20 +72,6 @@ describe SireAgenda do
         expect(meetings).not_to be_empty
         expect(meetings.keys).to be_array_of(Fixnum)
         expect(meetings.values).to be_array_of(SireAgenda::Meeting)
-      end
-    end
-  end
-
-  describe "#get_agenda" do
-    it "produces a nokogiri document " do
-      doc = @sire.get_agenda("./examples/agview.aspx")
-      expect(doc).to be_instance_of(Nokogiri::HTML::Document)
-    end
-    if ENABLE_NETWORK_OPERATIONS
-      it "fetches the agenda" do
-        meeting = SireAgenda::Meeting.new(652)
-        doc = @sire.get_agenda(meeting)
-        expect(doc).to be_instance_of(Nokogiri::HTML::Document)
       end
     end
   end

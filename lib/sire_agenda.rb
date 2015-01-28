@@ -27,8 +27,14 @@ class SireAgenda
       @last_changed = params[:last_changed]
     end
 
+    # URL of the document that contains the agenda for this meeting.
     def agenda_url
       "#{BASEURL}/mtgviewer.aspx?doctype=AGENDA&meetid=#{id}"
+    end
+
+    # The agenda for this meeting, fetched from the web, as a Nokogiri::HTML::Document
+    def fetch_agenda_doc
+      Nokogiri::HTML(open(agenda_url))
     end
 
   end
@@ -109,24 +115,6 @@ class SireAgenda
     meetings
   end
 
-
-  # Retrieve the agenda for a given meeting.
-  #
-  # Parameters:
-  # * meeting -- Either a Meeting instance or path to agenda file.
-  #
-  # The retrieved agenda, in a Nokogiri::HTML::Document
-  #
-  def get_agenda(meeting)
-    case meeting
-    when String
-      Nokogiri::HTML(open(meeting))
-    when Meeting
-      Nokogiri::HTML(open(meeting.agenda_url))
-    else
-      raise "meeting #{meeting} is not a String or Meeting instance"
-    end
-  end
 
 
   # Parse a meeting agenda.
