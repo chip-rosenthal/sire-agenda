@@ -3,7 +3,11 @@ require './spec_helper.rb'
 describe SireAgenda::Meeting do
 
   before(:each) do
-    @meeting = SireAgenda::Meeting.new(652)
+    @meeting = SireAgenda::Meeting.new(652,
+      :group => "Austin City Council",
+      :meeting_time => Time.parse("2015-01-01T00:00:00-06:00"),
+      :last_changed => Time.parse("2015-01-01T00:00:00-06:00"),
+    )
   end
 
   describe ".new" do
@@ -87,11 +91,19 @@ describe SireAgenda do
       @doc = Nokogiri::HTML(open("./examples/agview.aspx"))
     end
 
-    it "parses the agenda"
+    it "parses the agenda" do
+      items = @sire.parse_agenda(@doc)
+      expect(items.length).to eq(53)
+      expect(items.keys).to match_array((1..53).to_a)
 
-    #it "parses the agenda" do
-    #  items = @sire.parse_agenda(@doc)
-    #end
+      item = items[10]
+      expect(item.id).to eq (38981)
+      expect(item.num).to eq (10)
+      expect(item.section).to eq ("Purchasing Office")
+      expect(item.content).to be_instance_of(Nokogiri::XML::NodeSet)
+      expect(item.content.length).to eq(5)
+
+    end
   end
 
 end

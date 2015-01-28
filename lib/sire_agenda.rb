@@ -2,8 +2,14 @@ require 'nokogiri'
 require 'open-uri'
 require 'date'
 
+class NilClass
+  def empty?
+    true
+  end
+end
+
 class String
-  def cleanup_agenda_text
+  def cleanup_whitespace
     # \u00A0 is Unicode non-breaking space
     encode('utf-8').gsub("\u00A0", " ").gsub(/\s+/, " ").strip
   end
@@ -29,9 +35,9 @@ class SireAgenda
 
     def initialize(id, params = {})
       @id = id
-      @group = params[:group]
-      @meeting_time = params[:meeting_time]
-      @last_changed = params[:last_changed]
+      @group = params[:group] or raise "parameter \":group\" not defined"
+      @meeting_time = params[:meeting_time] or raise "parameter \":meeting_time\" not defined"
+      @last_changed = params[:last_changed] or raise "parameter \":last_changed\" not defined"
     end
 
     # URL of the document that contains the agenda for this meeting.
@@ -51,9 +57,21 @@ class SireAgenda
     # numeric id of this agenda item
     attr_reader :id
 
+    # numeric item number
     attr_reader :num
+
+    # name of the section this agenda item is in
     attr_reader :section
-    attr_accessor :text
+
+    # content of the agenda item
+    attr_reader :content
+
+    def initialize(id, params = {})
+      @id = id
+      @num = params[:num] or raise "parameter \":num\" not defined"
+      @section = params[:section] or raise "parameter \":section\" not defined"
+      @content = params[:content] or raise "parameter \":content\" not defined"
+    end
 
     def item_url
       "#{BASEURL}/sirepub/agdocs.aspx?doctype=AGENDA&itemid=#{id}"
@@ -141,13 +159,13 @@ class SireAgenda
       cols = row.xpath("td")
       next unless cols.length == 2
 
-      field1 = cols[0].inner_text.cleanup_agenda_text
+      field1 = cols[0].inner_text.cleanup_whitespace
       case field1
 
       when ""
-        section = cols[1].inner_text.cleanup_agenda_text
+        section = cols[1].inner_text.cleanup_whitespace
 
-      when /^(\d+)\./
+      when /^(\d+)\.$/
         itemno = $1.to_i
 
         a = cols[1].xpath(".//a[@name]").first
@@ -156,16 +174,17 @@ class SireAgenda
 
         content = cols[1].children
 
+        raise "section title missing or empty" if section.empty?
+
         raise "duplicate agenda itemid #{itemid}" if did_itemid.has_key?(itemid)
         did_itemid[itemid] = true
 
         raise "duplicate agenda itemno #{itemno}" if agenda.has_key?(itemno)
-        agenda[itemno] = {
-          :itemid => itemid,
-          :itemno => itemno,
+        agenda[itemno] = SireAgenda::AgendaItem.new(itemid,
+          :num => itemno,
           :section => section,
           :content => content,
-        }
+        )
 
       else
         throw "unrecognized column: \"#{field1}\""
