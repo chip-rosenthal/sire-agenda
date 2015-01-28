@@ -1,7 +1,33 @@
 require './spec_helper.rb'
 
-describe SireAgenda::Meeting
+describe SireAgenda::Meeting do
 
+  before(:each) do
+    @meeting = SireAgenda::Meeting.new(652)
+  end
+
+  describe ".new" do
+    it "creates an instance" do
+      expect(@meeting).to be_instance_of(SireAgenda::Meeting)
+    end
+    it "has an id" do
+      expect(@meeting.id).to eq(652)
+    end
+  end
+
+  describe "#agenda_url" do
+    it "produces agenda_url for the meeting" do
+      expect(@meeting.agenda_url).to eq("http://austin.siretechnologies.com/sirepub/mtgviewer.aspx?doctype=AGENDA&meetid=652")
+    end
+  end
+
+end
+
+#  describe "#url_item_backup"
+#    it "generates an URL from item id" do
+#      url = @sire.url_item_backup(999)
+#      expect(url).to match(/agdocs.aspx\?doctype=AGENDA&itemid=999$/)
+#    end
 
 
 describe SireAgenda do
@@ -15,19 +41,6 @@ describe SireAgenda do
       expect(@sire).to be_instance_of(SireAgenda)
     end
   end
-
-#  describe "#url_agenda" do
-#    it "generates an URL from meeting id" do
-#      url = @sire.url_agenda(999)
-#      expect(url).to match(/mtgviewer.aspx\?doctype=AGENDA&meetid=999$/)
-#    end
-#  end
-#
-#  describe "#url_item_backup"
-#    it "generates an URL from item id" do
-#      url = @sire.url_item_backup(999)
-#      expect(url).to match(/agdocs.aspx\?doctype=AGENDA&itemid=999$/)
-#    end
 
   describe "#list_meetings" do
     it "processes the RSS feed" do
@@ -47,8 +60,10 @@ describe SireAgenda do
     if ENABLE_NETWORK_OPERATIONS
       it "fetches the RSS feed" do
         meetings = @sire.list_meetings
-      expect(meetings).to be_instance_of(Hash)
-      expect(meetings).not_to be_empty
+        expect(meetings).to be_instance_of(Hash)
+        expect(meetings).not_to be_empty
+        expect(meetings.keys).to be_array_of(Fixnum)
+        expect(meetings.values).to be_array_of(SireAgenda::Meeting)
       end
     end
   end
@@ -60,7 +75,8 @@ describe SireAgenda do
     end
     if ENABLE_NETWORK_OPERATIONS
       it "fetches the agenda" do
-        doc = @sire.get_agenda(652)
+        meeting = SireAgenda::Meeting.new(652)
+        doc = @sire.get_agenda(meeting)
         expect(doc).to be_instance_of(Nokogiri::HTML::Document)
       end
     end
