@@ -1,5 +1,9 @@
 require './spec_helper.rb'
 
+describe SireAgenda::Meeting
+
+
+
 describe SireAgenda do
 
   before(:each) do
@@ -10,24 +14,20 @@ describe SireAgenda do
     it "creates an instance" do
       expect(@sire).to be_instance_of(SireAgenda)
     end
-    it "has a baseurl" do
-      baseurl = @sire.baseurl
-      expect(baseurl).to eq("http://austin.siretechnologies.com/sirepub")
-    end
   end
 
-  describe "#url_agenda" do
-    it "generates an URL from meeting id" do
-      url = @sire.url_agenda(999)
-      expect(url).to match(/mtgviewer.aspx\?doctype=AGENDA&meetid=999$/)
-    end
-  end
-
-  describe "#url_item_backup"
-    it "generates an URL from item id" do
-      url = @sire.url_item_backup(999)
-      expect(url).to match(/agdocs.aspx\?doctype=AGENDA&itemid=999$/)
-    end
+#  describe "#url_agenda" do
+#    it "generates an URL from meeting id" do
+#      url = @sire.url_agenda(999)
+#      expect(url).to match(/mtgviewer.aspx\?doctype=AGENDA&meetid=999$/)
+#    end
+#  end
+#
+#  describe "#url_item_backup"
+#    it "generates an URL from item id" do
+#      url = @sire.url_item_backup(999)
+#      expect(url).to match(/agdocs.aspx\?doctype=AGENDA&itemid=999$/)
+#    end
 
   describe "#list_meetings" do
     it "processes the RSS feed" do
@@ -39,14 +39,10 @@ describe SireAgenda do
       expect(meetings.keys).to match_array([652, 657, 665, 666, 690])
 
       meeting = meetings[652]
-      expect(meeting).to have_key(:meetid)
-      expect(meeting[:meetid]).to eq(652)
-      expect(meeting).to have_key(:group)
-      expect(meeting[:group]).to eq("Austin City Council")
-      expect(meeting).to have_key(:meetdate)
-      expect(meeting[:meetdate]).to eq(Time.parse("2015-01-29T10:00:00-06:00"))
-      expect(meeting).to have_key(:pubdate)
-      expect(meeting[:pubdate]).to eq(Time.parse("2015-01-26T16:06:07-06:00"))
+      expect(meeting.id).to eq(652)
+      expect(meeting.group).to eq("Austin City Council")
+      expect(meeting.meeting_time).to eq(Time.parse("2015-01-29T10:00:00-06:00"))
+      expect(meeting.last_changed).to eq(Time.parse("2015-01-26T16:06:07-06:00"))
     end
     if ENABLE_NETWORK_OPERATIONS
       it "fetches the RSS feed" do

@@ -4,38 +4,60 @@ require 'date'
 
 class SireAgenda
 
+  BASEURL = "http://austin.siretechnologies.com/sirepub"
+
+  class Meeting
+
+    # numeric id of this meeting
+    attr_reader :id
+
+    # group name, like "Austin City Council"
+    attr_reader :group
+
+    # meeting time, as a Time instance
+    attr_reader :meeting_time
+
+    # last change to the agenda, as a Time instance
+    attr_reader :last_changed
+
+    def initialize(id, params = {})
+      @id = id
+      @group = params[:group]
+      @meeting_time = params[:meeting_time]
+      @last_changed = params[:last_changed]
+    end
+
+    def agenda_url
+      "#{BASEURL}/mtgviewer.aspx?doctype=AGENDA&meetid=#{id}"
+    end
+
+  end
+
+  class AgendaItem
+
+    # numeric id of this agenda item
+    attr_reader :id
+
+    attr_reader :num
+    attr_reader :section
+    attr_accessor :text
+
+    def item_url
+      "#{BASEURL}/sirepub/agdocs.aspx?doctype=AGENDA&itemid=#{id}"
+    end
+
+  end
+
   attr_accessor :baseurl
 
   # Construct a new SireAgenda object.
   #
-  # Options:
-  # * :baseurl - default is "http://austin.siretechnologies.com/sirepub"
-  #
-  def initialize(opts = {})
-    @baseurl = opts[:baseurl] || "http://austin.siretechnologies.com/sirepub"
+  def initialize
+    # empty
   end
 
-  # URL for the agenda of a given meeting
-  #
-  # Parameters:
-  # * meetid
-  #
-  # Returns string with URL of webpage with agenda for that meeting.
-  #
-  def url_agenda(meetid)
-    "#{@baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=#{meetid}"
-  end
-
-
-  # URL for a given agenda item and its backup
-  #
-  # Parameters:
-  # * itemid
-  #
-  # Returns string with URL of webpage with agenda item.
-  #
-  def url_item_backup(itemid)
-    "#{@baseurl}/sirepub/agdocs.aspx?doctype=AGENDA&itemid=#{itemid}"
+  def meeting_feed_url
+    "#{BASEURL}/rss/rss.aspx"
   end
 
 
@@ -45,14 +67,9 @@ class SireAgenda
   #  * :source
   #  * :cutoff
   #
-  # Returns a hash on meetid of elements with members:
-  #  * :meetid
-  #  * :group
-  #  * :meetdate
-  #  * :pubdate
-  #
+  # Returns a hash of Meeting instances, indexed on id.
   def list_meetings(opts = {})
-    source = opts[:source] || "#{@baseurl}/rss/rss.aspx"
+    source = opts[:source] || meeting_feed_url
     cutoff = opts[:cutoff] || Time.now
 
     doc = Nokogiri::XML(open(source))
@@ -64,14 +81,14 @@ class SireAgenda
       title = item.xpath("title").inner_text
       m = title.match(/(.*) - (.*)/)
       group = m[1]
-      meetdate = Time.strptime(m[2], "%m/%d/%Y %I:%M %p")
+      meeting_time = Time.strptime(m[2], "%m/%d/%Y %I:%M %p")
 
       # Consider only future meetings.
-      next unless meetdate > cutoff
+      next unless meeting_time > cutoff
 
       # There are some weird far future meetings in the feed.
       # Cut off stuff more than a year out.
-      next if meetdate > cutoff + (365*24*60*60)
+      next if meeting_time > cutoff + (365*24*60*60)
 
       # "https://austin.siretechnologies.com/sirepub/mtgviewer.aspx?meetid=576&doctype=AGENDA"
       link = item.xpath("link").inner_text
@@ -80,12 +97,12 @@ class SireAgenda
 
       pubdate = Time.parse(item.xpath("pubDate").inner_text)
 
-      meetings[meetid] = {
-        :meetid => meetid,
+      meetings[meetid] = SireAgenda::Meeting.new(meetid,
         :group => group,
-        :meetdate => meetdate,
-        :pubdate => pubdate,
-      }
+        :meeting_time => meeting_time,
+        :last_changed => pubdate,
+      )
+
 
     end
 
@@ -96,15 +113,18 @@ class SireAgenda
   # Retrieve the agenda for a given meeting.
   #
   # Parameters:
-  # * meetid -- Either a meeting id number or path to retrieved agenda file.
+  # * meeting -- Either a Meeting instance or path to agenda file.
   #
   # The retrieved agenda, in a Nokogiri::HTML::Document
   #
-  def get_agenda(meetid)
-    if meetid.instance_of?(String) && File.exist?(meetid)
-      Nokogiri::HTML(open(meetid))
+  def get_agenda(meeting)
+    case meeting
+    when String
+      Nokogiri::HTML(open(meeting))
+    when Meeting
+      Nokogiri::HTML(open(meeting.agenda_url))
     else
-      Nokogiri::HTML(open(url_agenda(meetid)))
+      raise "meeting #{meeting} is not a String or Meeting instance"
     end
   end
 
@@ -122,6 +142,8 @@ class SireAgenda
   #   * :text
   #
   def parse_agenda(meetid, doc)
+
+    raise "not implemented yet"
 
     rows = doc.xpath("//tr")
     agenda = {}
