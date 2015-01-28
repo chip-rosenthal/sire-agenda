@@ -47,8 +47,7 @@ class SireAgenda
   #
   # Returns a hash on meetid of elements with members:
   #  * :meetid
-  #  * :link
-  #  * :body
+  #  * :group
   #  * :meetdate
   #  * :pubdate
   #
@@ -64,7 +63,7 @@ class SireAgenda
       # "Austin City Council - 1/13/2011 10:00 AM"
       title = item.xpath("title").inner_text
       m = title.match(/(.*) - (.*)/)
-      body = m[1]
+      group = m[1]
       meetdate = Time.strptime(m[2], "%m/%d/%Y %I:%M %p")
 
       # Consider only future meetings.
@@ -77,15 +76,13 @@ class SireAgenda
       # "https://austin.siretechnologies.com/sirepub/mtgviewer.aspx?meetid=576&doctype=AGENDA"
       link = item.xpath("link").inner_text
       m = link.match(/meetid=([\d]+)/)
-      meetid = m[1]
+      meetid = m[1].to_i
 
       pubdate = Time.parse(item.xpath("pubDate").inner_text)
 
       meetings[meetid] = {
         :meetid => meetid,
-        #:link => link,
-        #:category => category,
-        :body => body,
+        :group => group,
         :meetdate => meetdate,
         :pubdate => pubdate,
       }
@@ -104,7 +101,7 @@ class SireAgenda
   # The retrieved agenda, in a Nokogiri::HTML::Document
   #
   def get_agenda(meetid)
-    if File.exist?(meetid)
+    if meetid.instance_of?(String) && File.exist?(meetid)
       Nokogiri::HTML(open(meetid))
     else
       Nokogiri::HTML(open(url_agenda(meetid)))

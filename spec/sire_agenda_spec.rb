@@ -18,14 +18,14 @@ describe SireAgenda do
 
   describe "#url_agenda" do
     it "generates an URL from meeting id" do
-      url = @sire.url_agenda("999")
+      url = @sire.url_agenda(999)
       expect(url).to match(/mtgviewer.aspx\?doctype=AGENDA&meetid=999$/)
     end
   end
 
   describe "#url_item_backup"
     it "generates an URL from item id" do
-      url = @sire.url_item_backup("999")
+      url = @sire.url_item_backup(999)
       expect(url).to match(/agdocs.aspx\?doctype=AGENDA&itemid=999$/)
     end
 
@@ -36,13 +36,13 @@ describe SireAgenda do
 
       meetings = @sire.list_meetings(:source => source, :cutoff => cutoff)
       expect(meetings.length).to eq(5)
-      expect(meetings.keys).to match_array(["652", "657", "665", "666", "690"])
+      expect(meetings.keys).to match_array([652, 657, 665, 666, 690])
 
-      meeting = meetings["652"]
+      meeting = meetings[652]
       expect(meeting).to have_key(:meetid)
-      expect(meeting[:meetid]).to eq("652")
-      expect(meeting).to have_key(:body)
-      expect(meeting[:body]).to eq("Austin City Council")
+      expect(meeting[:meetid]).to eq(652)
+      expect(meeting).to have_key(:group)
+      expect(meeting[:group]).to eq("Austin City Council")
       expect(meeting).to have_key(:meetdate)
       expect(meeting[:meetdate]).to eq(Time.parse("2015-01-29T10:00:00-06:00"))
       expect(meeting).to have_key(:pubdate)
@@ -64,7 +64,7 @@ describe SireAgenda do
     end
     if ENABLE_NETWORK_OPERATIONS
       it "fetches the agenda" do
-        doc = @sire.get_agenda("652")
+        doc = @sire.get_agenda(652)
         expect(doc).to be_instance_of(Nokogiri::HTML::Document)
       end
     end
