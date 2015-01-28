@@ -1,1 +1,21 @@
-coming soon
+This library provides an interface to the Sire agenda management system,
+such as used by the City of Austin.
+
+It's currently in development. Drop me a line if you'd like to help.
+
+Example:
+
+    @sire = SireAgenda.new
+
+    upcoming_meetings = @sire.list_meetings
+
+    agenda = {}
+    upcoming_meetings.keys.each do |meetid|
+        doc = @sire.get_agenda(meetid)
+        agenda[meetid] = @sire.parse_agenda(meetid, doc)
+    end
+
+
+Chip Rosenthal
+chip@unicom.com
+
