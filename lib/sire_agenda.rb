@@ -54,8 +54,6 @@ class SireAgenda
 
   end
 
-  attr_accessor :baseurl
-
   # Construct a new SireAgenda object.
   #
   def initialize
