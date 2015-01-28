@@ -2,6 +2,13 @@ require 'nokogiri'
 require 'open-uri'
 require 'date'
 
+class String
+  def cleanup_agenda_text
+    # \u00A0 is Unicode non-breaking space
+    encode('utf-8').gsub("\u00A0", " ").gsub(/\s+/, " ").strip
+  end
+end
+
 class SireAgenda
 
   BASEURL = "http://austin.siretechnologies.com/sirepub"
@@ -71,7 +78,8 @@ class SireAgenda
   end
 
   # Returns a hash of Meeting instances, indexed on id.
-  def upcoming_meetings(doc, opts = {})
+  def upcoming_meetings(opts = {})
+    doc = opts[:doc] || fetch_meeting_feed_doc
     cutoff = opts[:cutoff] || Time.now
 
     meetings = {}
@@ -111,47 +119,48 @@ class SireAgenda
 
 
 
-  # Parse a meeting agenda.
-  #
-  # Arguments:
-  # * meetid
-  # * doc - The agenda in a Nokogiri::HTML::Document
-  #
-  # Returns a hash on itemid of elements with members:
-  #   * :itemid
-  #   * :itemno
-  #   * :section
-  #   * :text
-  #
-  def parse_agenda(meetid, doc)
+  def parse_agenda(doc)
 
-    raise "not implemented yet"
-
-    rows = doc.xpath("//tr")
     agenda = {}
+    did_itemid = {}
     section = nil
 
-    (1 .. rows.length).each do |i|
-      cols = rows[i-1].xpath("td")
-
+    #
+    # The agenda is a big table. The rows that interest
+    # us have two columns.
+    #
+    # The rows with section headings have blank first column, and
+    # section heading in the second column.
+    #
+    # The rows with agenda items have the iten number (terminated with
+    # a period) in the first column, and the item content in the second
+    # column.
+    #
+    rows = doc.xpath("//tr")
+    rows.each do |row|
+      cols = row.xpath("td")
       next unless cols.length == 2
 
-      field0 = cols[0].inner_text.gsub(/\s+/, " ").strip
-      case field0
+      field1 = cols[0].inner_text.cleanup_agenda_text
+      case field1
 
-      when "\u00A0"
-        section = cols[1].inner_text.gsub(/\s+/, " ").strip
+      when ""
+        section = cols[1].inner_text.cleanup_agenda_text
 
       when /^(\d+)\./
-        itemno = $1
+        itemno = $1.to_i
 
         a = cols[1].xpath(".//a[@name]").first
         m = a["name"].match(/^Item([\d]+)$/)
-        itemid = m[1]
+        itemid = m[1].to_i
 
-        content = cols[1].inner_html.gsub(/\s+/, " ").strip
+        content = cols[1].children
 
-        agenda[itemid] = {
+        raise "duplicate agenda itemid #{itemid}" if did_itemid.has_key?(itemid)
+        did_itemid[itemid] = true
+
+        raise "duplicate agenda itemno #{itemno}" if agenda.has_key?(itemno)
+        agenda[itemno] = {
           :itemid => itemid,
           :itemno => itemno,
           :section => section,
@@ -159,7 +168,7 @@ class SireAgenda
         }
 
       else
-        throw "unrecognized column: #{field0}"
+        throw "unrecognized column: \"#{field1}\""
 
       end
 

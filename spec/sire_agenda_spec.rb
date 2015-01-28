@@ -70,7 +70,7 @@ describe SireAgenda do
     end
     it "processes the RSS feed" do
       cutoff = Time.parse("2015-01-27T21:37:12-06:00")
-      meetings = @sire.upcoming_meetings(@doc, :cutoff => cutoff)
+      meetings = @sire.upcoming_meetings(:doc => @doc, :cutoff => cutoff)
       expect(meetings.length).to eq(5)
       expect(meetings.keys).to match_array([652, 657, 665, 666, 690])
 
@@ -83,7 +83,15 @@ describe SireAgenda do
   end
 
   describe "#parse_agenda" do
+    before(:each) do
+      @doc = Nokogiri::HTML(open("./examples/agview.aspx"))
+    end
+
     it "parses the agenda"
+
+    #it "parses the agenda" do
+    #  items = @sire.parse_agenda(@doc)
+    #end
   end
 
 end
