@@ -1,0 +1,31 @@
+$LOAD_PATH << File.expand_path("#{File.dirname(__FILE__)}/../lib")
+require 'sire_agenda'
+
+USAGE="usage: #{$0} meeting_id"
+
+raise USAGE unless ARGV.length == 1
+id = ARGV.first.to_i
+raise "bad meeting id #{ARGV.first}" unless id > 0
+
+@sire = SireAgenda.new
+puts "Fetching agenda for meeting id #{id} ... stand by ..."
+
+doc = @sire.fetch_agenda_doc(id)
+items = @sire.parse_agenda(doc)
+
+section = nil
+items.keys.sort.each do |itemno|
+
+  item = items[itemno]
+
+  if section != item.section
+    puts "\n*** #{item.section} ***\n"
+    section = item.section
+  end
+
+  puts "\nItem #{item.num} (id #{item.id})"
+  puts item.content
+  puts ""
+
+end
+
