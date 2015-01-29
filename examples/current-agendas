@@ -1,12 +1,15 @@
 $LOAD_PATH << File.expand_path("#{File.dirname(__FILE__)}/../lib")
-
 require 'sire_agenda'
 
 @sire = SireAgenda.new
+puts "Fetching meetings list ... stand by ..."
+meetings = @sire.upcoming_meetings.values
 
-puts "*** Upcoming Meetings **"
+puts "
+*** Upcoming Meetings **
+"
 
-@sire.upcoming_meetings.values.each do |meeting|
+meetings.each do |meeting|
   puts "
 Meeting Id:   #{meeting.id}
 Group:        #{meeting.group}

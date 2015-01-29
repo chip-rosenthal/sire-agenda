@@ -3,10 +3,12 @@ require './spec_helper.rb'
 describe SireAgenda::Meeting do
 
   before(:each) do
+    @sire = SireAgenda.new
     @meeting = SireAgenda::Meeting.new(652,
       :group => "Austin City Council",
       :meeting_time => Time.parse("2015-01-01T00:00:00-06:00"),
       :last_changed => Time.parse("2015-01-01T00:00:00-06:00"),
+      :sire => @sire,
     )
   end
 
@@ -21,7 +23,7 @@ describe SireAgenda::Meeting do
 
   describe "#agenda_url" do
     it "produces agenda_url for the meeting" do
-      expect(@meeting.agenda_url).to eq("#{SireAgenda::BASEURL}/mtgviewer.aspx?doctype=AGENDA&meetid=652")
+      expect(@meeting.agenda_url).to eq("#{@sire.baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=652")
     end
   end
 
@@ -50,7 +52,7 @@ describe SireAgenda do
 
   describe "#meeting_feed_url" do
     it "produces URL for the meeting feed" do
-      expect(@sire.meeting_feed_url).to eq("#{SireAgenda::BASEURL}/rss/rss.aspx")
+      expect(@sire.meeting_feed_url).to eq("#{@sire.baseurl}/rss/rss.aspx")
     end
   end
 
@@ -77,6 +79,20 @@ describe SireAgenda do
       expect(meeting.group).to eq("Austin City Council")
       expect(meeting.meeting_time).to eq(Time.parse("2015-01-29T10:00:00-06:00"))
       expect(meeting.last_changed).to eq(Time.parse("2015-01-26T16:06:07-06:00"))
+    end
+  end
+
+  describe "#agenda_url" do
+    it "produces agenda_url for the meeting" do
+      expect(@sire.agenda_url(652)).to eq("#{@sire.baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=652")
+    end
+  end
+
+  describe "#fetch_agenda_doc" do
+    if ENABLE_NETWORK_OPERATIONS
+      it "fetches the agenda" do
+        expect(@sire.fetch_agenda_doc(652)).to be_instance_of(Nokogiri::HTML::Document)
+      end
     end
   end
 

@@ -15,87 +15,42 @@ class String
   end
 end
 
+# Class for interacting with a remote Sire agenda management system.
+#
 class SireAgenda
 
-  BASEURL = "http://austin.siretechnologies.com/sirepub"
+  DEFAULT_BASEURL = "http://austin.siretechnologies.com/sirepub"
 
-  class Meeting
+  attr_reader :baseurl
 
-    # numeric id of this meeting
-    attr_reader :id
-
-    # group name, like "Austin City Council"
-    attr_reader :group
-
-    # meeting time, as a Time instance
-    attr_reader :meeting_time
-
-    # last change to the agenda, as a Time instance
-    attr_reader :last_changed
-
-    def initialize(id, params = {})
-      @id = id
-      @group = params[:group] or raise "parameter \":group\" not defined"
-      @meeting_time = params[:meeting_time] or raise "parameter \":meeting_time\" not defined"
-      @last_changed = params[:last_changed] or raise "parameter \":last_changed\" not defined"
-    end
-
-    # URL of the document that contains the agenda for this meeting.
-    def agenda_url
-      "#{BASEURL}/mtgviewer.aspx?doctype=AGENDA&meetid=#{id}"
-    end
-
-    # The agenda for this meeting, fetched from the web, as a Nokogiri::HTML::Document
-    def fetch_agenda_doc
-      Nokogiri::HTML(open(agenda_url))
-    end
-
-  end
-
-  class AgendaItem
-
-    # numeric id of this agenda item
-    attr_reader :id
-
-    # numeric item number
-    attr_reader :num
-
-    # name of the section this agenda item is in
-    attr_reader :section
-
-    # content of the agenda item
-    attr_reader :content
-
-    def initialize(id, params = {})
-      @id = id
-      @num = params[:num] or raise "parameter \":num\" not defined"
-      @section = params[:section] or raise "parameter \":section\" not defined"
-      @content = params[:content] or raise "parameter \":content\" not defined"
-    end
-
-    def item_url
-      "#{BASEURL}/sirepub/agdocs.aspx?doctype=AGENDA&itemid=#{id}"
-    end
-
-  end
-
-  # Construct a new SireAgenda object.
+  # Construct a new SireAgenda instance.
   #
-  def initialize
-    # empty
+  # Options:
+  # :baseurl - Base URL of Sire Pub application. Default
+  # "http://austin.siretechnologies.com/sirepub"
+  #
+  def initialize(opts = {})
+    @baseurl = opts[:baseurl] || DEFAULT_BASEURL
   end
 
-  # URL of the document that contains the RSS feed of all meetings
+
+  # URL of the document that contains the RSS feed of all meetings.
+  #
   def meeting_feed_url
-    "#{BASEURL}/rss/rss.aspx"
+    "#{@baseurl}/rss/rss.aspx"
   end
 
-  # RSS feed of all meetings, fetched from the web, as a Nokogiri::XML::Document
+
+  # Fetch RSS feed of all meetings from the web, as a
+  # Nokogiri::XML::Document
+  #
   def fetch_meeting_feed_doc
       Nokogiri::XML(open(meeting_feed_url))
   end
 
+
   # Returns a hash of Meeting instances, indexed on id.
+  #
   def upcoming_meetings(opts = {})
     doc = opts[:doc] || fetch_meeting_feed_doc
     cutoff = opts[:cutoff] || Time.now
@@ -128,6 +83,7 @@ class SireAgenda
         :group => group,
         :meeting_time => meeting_time,
         :last_changed => pubdate,
+        :sire => self,
       )
 
     end
@@ -136,6 +92,24 @@ class SireAgenda
   end
 
 
+  # URL of the HTML agenda document for a given meeting id.
+  #
+  def agenda_url(id)
+    "#{@baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=#{id}"
+  end
+
+
+  # Fetch HTML agenda document for a given meeting id from the web,
+  # as a Nokogiri::HTML::Document
+  #
+  def fetch_agenda_doc(id)
+      Nokogiri::HTML(open(agenda_url(id)))
+  end
+
+
+  # Parse an HTML agenda document to a hash of SireAgenda::AgendaItem
+  # instances, indexed by agenda item number.
+  #
   def parse_agenda(doc)
 
     agenda = {}
@@ -171,6 +145,12 @@ class SireAgenda
         m = a["name"].match(/^Item([\d]+)$/)
         itemid = m[1].to_i
 
+        # The content of the agenda item, as de-shitified HTML text.
+        #
+        # Transformations made:
+        #   * Strip out <a> and <span> tags.
+        #   * Remove attributes of <p> tags.
+        #
         content = cols[1].inner_html \
           .cleanup_whitespace \
           .gsub(/<(a|span) [^>]+>/, "") \
@@ -187,6 +167,7 @@ class SireAgenda
           :num => itemno,
           :section => section,
           :content => content,
+          :sire => self,
         )
 
       else
@@ -198,5 +179,74 @@ class SireAgenda
     agenda
   end
 
-end # class SireAgenda
 
+
+  # A meeting that has an agenda associated with it.
+  #
+  class Meeting
+
+    # numeric id of this meeting
+    attr_reader :id
+
+    # group name, like "Austin City Council"
+    attr_reader :group
+
+    # meeting time, as a Time instance
+    attr_reader :meeting_time
+
+    # last change to the agenda, as a Time instance
+    attr_reader :last_changed
+
+    def initialize(id, params = {})
+      @id = id
+      @group = params[:group] or raise "parameter \":group\" not defined"
+      @meeting_time = params[:meeting_time] or raise "parameter \":meeting_time\" not defined"
+      @last_changed = params[:last_changed] or raise "parameter \":last_changed\" not defined"
+      @sire = params[:sire] or raise "parameter \":sire\" not defined"
+    end
+
+    # URL of the document that contains the agenda for this meeting.
+    def agenda_url
+      @sire.agenda_url(id)
+    end
+
+    # The agenda for this meeting, fetched from the web, as a Nokogiri::HTML::Document
+    def fetch_agenda_doc
+      Nokogiri::HTML(open(agenda_url))
+    end
+
+  end
+
+
+  # An item on a meeting agenda.
+  #
+  class AgendaItem
+
+    # Numeric id of this agenda item. This id is unique across
+    # all agenda items for all meetings.
+    attr_reader :id
+
+    # Numeric item number. This is used for ordering items in a given meeting.
+    attr_reader :num
+
+    # Name of the section this agenda item is in, like."Purchasing"
+    attr_reader :section
+
+    # Content of the agenda item, as a cleaned up HTML string.
+    attr_reader :content
+
+    def initialize(id, params = {})
+      @id = id
+      @num = params[:num] or raise "parameter \":num\" not defined"
+      @section = params[:section] or raise "parameter \":section\" not defined"
+      @content = params[:content] or raise "parameter \":content\" not defined"
+      @sire = params[:sire] or raise "parameter \":sire\" not defined"
+    end
+
+    def item_url
+      "#{@baseurl}/sirepub/agdocs.aspx?doctype=AGENDA&itemid=#{id}"
+    end
+
+  end
+
+end # class SireAgenda
