@@ -21,18 +21,11 @@ class SireAgenda
 
   DEFAULT_BASEURL = "http://austin.siretechnologies.com/sirepub"
 
-  attr_reader :baseurl
+  attr_accessor :baseurl
 
-  # Construct a new SireAgenda instance.
-  #
-  # Options:
-  # :baseurl - Base URL of Sire Pub application. Default
-  # "http://austin.siretechnologies.com/sirepub"
-  #
   def initialize(opts = {})
     @baseurl = opts[:baseurl] || DEFAULT_BASEURL
   end
-
 
   # URL of the document that contains the RSS feed of all meetings.
   #
@@ -95,7 +88,7 @@ class SireAgenda
   # URL of the HTML agenda document for a given meeting id.
   #
   def agenda_url(id)
-    "#{@baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=#{id}"
+    "#{@baseurl}/agview.aspx?agviewdoctype=AGENDA&agviewmeetid=#{id}"
   end
 
 
@@ -116,28 +109,26 @@ class SireAgenda
     did_itemid = {}
     section = nil
 
-    #
     # The agenda is a big table. The rows that interest
     # us have two columns.
     #
-    # The rows with section headings have blank first column, and
-    # section heading in the second column.
-    #
-    # The rows with agenda items have the iten number (terminated with
-    # a period) in the first column, and the item content in the second
-    # column.
-    #
     rows = doc.xpath("//tr")
     rows.each do |row|
+
       cols = row.xpath("td")
       next unless cols.length == 2
 
       field1 = cols[0].inner_text.cleanup_whitespace
       case field1
 
+      # The rows with section headings have blank first column, and
+      # section heading in the second column.
       when ""
         section = cols[1].inner_text.cleanup_whitespace
 
+      # The rows with agenda items have the iten number (terminated with
+      # a period) in the first column, and the item content in the second
+      # column.
       when /^(\d+)\.$/
         itemno = $1.to_i
 
@@ -170,8 +161,10 @@ class SireAgenda
           :sire => self,
         )
 
+      # Not sure what this row is. Be conservative and fail
+      # so we can fix it.
       else
-        throw "unrecognized column: \"#{field1}\""
+        raise "unrecognized column: \"#{field1}\""
 
       end
 
@@ -180,6 +173,35 @@ class SireAgenda
   end
 
 
+  # URL of the HTML agenda item detail document for a given agenda item id.
+  #
+  def item_detail_url(id)
+    "#{@baseurl}/agdocs.aspx?doctype=agenda&itemid=#{id}"
+  end
+
+  def fetch_item_detail_doc(id)
+      Nokogiri::HTML(open(item_detail_url(id)))
+  end
+
+  def extract_item_backup(doc)
+    backup = []
+    doc.xpath("//table[@id=\"tblMaterials\"]//td[@class=\"tabledata\"]").each do |cell|
+      m = cell.xpath("//a").first["href"].match(/fileid=([\d]+)/)
+      id = m[1].to_i
+      description = cell.inner_text.cleanup_whitespace
+      backup << SireAgenda::AgendaItemBackup.new(id,
+        :description => description,
+        :sire => self,
+      )
+    end
+    backup
+  end
+
+  # URL of an agenda item backup document for a given backup item id.
+  #
+  def item_backup_url(id)
+    "#{@baseurl}/view.aspx?cabinet=published_meetings&fileid=#{id}"
+  end
 
   # A meeting that has an agenda associated with it.
   #
@@ -243,10 +265,24 @@ class SireAgenda
       @sire = params[:sire] or raise "parameter \":sire\" not defined"
     end
 
-    def item_url
-      "#{@baseurl}/sirepub/agdocs.aspx?doctype=AGENDA&itemid=#{id}"
+    def url
+      @sire.agenda_item_url(id)
     end
 
   end
+
+  class AgendaItemBackup
+
+    attr_reader :id
+
+    attr_reader :description
+
+    def initialize(id, params = {})
+      @id = id
+      @description = params[:description] or raise "parameter \":description\" not defined"
+      @sire = params[:sire] or raise "parameter \":sire\" not defined"
+    end
+
+  end # class AgendaItemBackup
 
 end # class SireAgenda

@@ -23,7 +23,8 @@ describe SireAgenda::Meeting do
 
   describe "#agenda_url" do
     it "produces agenda_url for the meeting" do
-      expect(@meeting.agenda_url).to eq("#{@sire.baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=652")
+      @url = @meeting.agenda_url
+      expect(@url).to eq("#{@sire.baseurl}/agview.aspx?agviewdoctype=AGENDA&agviewmeetid=652")
     end
   end
 
@@ -35,8 +36,11 @@ describe SireAgenda::Meeting do
     end
   end
 
-end
+end # SireAgenda::Meeting
 
+describe SireAgenda::AgendaItem # TODO
+
+describe SireAgenda::AgendaItemBackup # TODO
 
 describe SireAgenda do
 
@@ -52,7 +56,8 @@ describe SireAgenda do
 
   describe "#meeting_feed_url" do
     it "produces URL for the meeting feed" do
-      expect(@sire.meeting_feed_url).to eq("#{@sire.baseurl}/rss/rss.aspx")
+      @url = @sire.meeting_feed_url
+      expect(@url).to eq("#{@sire.baseurl}/rss/rss.aspx")
     end
   end
 
@@ -84,7 +89,8 @@ describe SireAgenda do
 
   describe "#agenda_url" do
     it "produces agenda_url for the meeting" do
-      expect(@sire.agenda_url(652)).to eq("#{@sire.baseurl}/mtgviewer.aspx?doctype=AGENDA&meetid=652")
+      @url = @sire.agenda_url(652)
+      expect(@url).to eq("#{@sire.baseurl}/agview.aspx?agviewdoctype=AGENDA&agviewmeetid=652")
     end
   end
 
@@ -115,4 +121,37 @@ describe SireAgenda do
     end
   end
 
-end
+  describe "#item_detail_url" do
+    it "produces detail_url for the agenda item" do
+      @url = @sire.item_detail_url(40268)
+      expect(@url).to eq("#{@sire.baseurl}/agdocs.aspx?doctype=agenda&itemid=40268")
+    end
+  end
+
+  describe "#fetch_item_detail_doc" do
+    if ENABLE_NETWORK_OPERATIONS
+      it "fetches the item detail" do
+        @doc = @sire.fetch_item_detail_doc(40268)
+        expect(@doc).to be_instance_of(Nokogiri::HTML::Document)
+      end
+    end
+  end
+
+  describe "#extract_item_backup" do
+    it "extracts backup items from agenda item doc" do
+      @doc = Nokogiri::HTML(open("./examples/agdocs-40268.aspx"))
+      @backup = @sire.extract_item_backup(@doc)
+      expect(@backup).to be_array_of(SireAgenda::AgendaItemBackup)
+      expect(@backup.length).to eq(4)
+      expect(@backup.map {|b| b.id}).to match_array([940453, 940453, 940453, 940453])
+    end
+  end
+
+  describe "#item_backup_url" do
+    it "produces url for the agenda item backup document" do
+      @url = @sire.item_backup_url(940453)
+      expect(@url).to eq("#{@sire.baseurl}/view.aspx?cabinet=published_meetings&fileid=940453")
+    end
+  end
+
+end # SireAgenda
