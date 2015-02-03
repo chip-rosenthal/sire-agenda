@@ -28,14 +28,6 @@ describe SireAgenda::Meeting do
     end
   end
 
-  describe "#fetch_agenda_doc" do
-    if ENABLE_NETWORK_OPERATIONS
-      it "fetches the agenda" do
-        expect(@meeting.fetch_agenda_doc).to be_instance_of(Nokogiri::HTML::Document)
-      end
-    end
-  end
-
 end # SireAgenda::Meeting
 
 describe SireAgenda::AgendaItem # TODO
@@ -61,21 +53,13 @@ describe SireAgenda do
     end
   end
 
-  describe "#fetch_meeting_feed_doc" do
-    if ENABLE_NETWORK_OPERATIONS
-      it "fetches the meeting feed" do
-        expect(@sire.fetch_meeting_feed_doc).to be_instance_of(Nokogiri::XML::Document)
-      end
-    end
-  end
-
   describe "#upcoming_meetings" do
     before(:each) do
-      @doc = Nokogiri::XML(open("./examples/rss.aspx"))
+      @content = open("./examples/rss.aspx")
     end
     it "processes the RSS feed" do
       cutoff = Time.parse("2015-01-27T21:37:12-06:00")
-      meetings = @sire.upcoming_meetings(:doc => @doc, :cutoff => cutoff)
+      meetings = @sire.upcoming_meetings(@content, :cutoff => cutoff)
       expect(meetings.length).to eq(5)
       expect(meetings.keys).to match_array([652, 657, 665, 666, 690])
 
@@ -94,21 +78,13 @@ describe SireAgenda do
     end
   end
 
-  describe "#fetch_agenda_doc" do
-    if ENABLE_NETWORK_OPERATIONS
-      it "fetches the agenda" do
-        expect(@sire.fetch_agenda_doc(652)).to be_instance_of(Nokogiri::HTML::Document)
-      end
-    end
-  end
-
   describe "#parse_agenda" do
     before(:each) do
-      @doc = Nokogiri::HTML(open("./examples/agview.aspx"))
+      @content = open("./examples/agview.aspx")
     end
 
     it "parses the agenda" do
-      items = @sire.parse_agenda(@doc)
+      items = @sire.parse_agenda(@content)
       expect(items.length).to eq(53)
       expect(items.keys).to match_array((1..53).to_a)
 
@@ -128,19 +104,10 @@ describe SireAgenda do
     end
   end
 
-  describe "#fetch_item_detail_doc" do
-    if ENABLE_NETWORK_OPERATIONS
-      it "fetches the item detail" do
-        @doc = @sire.fetch_item_detail_doc(40268)
-        expect(@doc).to be_instance_of(Nokogiri::HTML::Document)
-      end
-    end
-  end
-
   describe "#extract_item_backup" do
     it "extracts backup items from agenda item doc" do
-      @doc = Nokogiri::HTML(open("./examples/agdocs-40268.aspx"))
-      @backup = @sire.extract_item_backup(@doc)
+      @content = open("./examples/agdocs-40268.aspx")
+      @backup = @sire.extract_item_backup(@content)
       expect(@backup).to be_array_of(SireAgenda::AgendaItemBackup)
       expect(@backup.length).to eq(4)
       expect(@backup.map {|b| b.id}).to match_array([940453, 940453, 940453, 940453])

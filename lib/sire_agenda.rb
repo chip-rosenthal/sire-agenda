@@ -34,19 +34,12 @@ class SireAgenda
   end
 
 
-  # Fetch RSS feed of all meetings from the web, as a
-  # Nokogiri::XML::Document
-  #
-  def fetch_meeting_feed_doc
-      Nokogiri::XML(open(meeting_feed_url))
-  end
-
-
   # Returns a hash of Meeting instances, indexed on id.
   #
-  def upcoming_meetings(opts = {})
-    doc = opts[:doc] || fetch_meeting_feed_doc
+  def upcoming_meetings(content, opts = {})
     cutoff = opts[:cutoff] || Time.now
+
+    doc = Nokogiri::XML(content)
 
     meetings = {}
 
@@ -92,18 +85,12 @@ class SireAgenda
   end
 
 
-  # Fetch HTML agenda document for a given meeting id from the web,
-  # as a Nokogiri::HTML::Document
-  #
-  def fetch_agenda_doc(id)
-      Nokogiri::HTML(open(agenda_url(id)))
-  end
-
-
   # Parse an HTML agenda document to a hash of SireAgenda::AgendaItem
   # instances, indexed by agenda item number.
   #
-  def parse_agenda(doc)
+  def parse_agenda(content)
+
+    doc = Nokogiri::HTML(content)
 
     agenda = {}
     did_itemid = {}
@@ -179,11 +166,8 @@ class SireAgenda
     "#{@baseurl}/agdocs.aspx?doctype=agenda&itemid=#{id}"
   end
 
-  def fetch_item_detail_doc(id)
-      Nokogiri::HTML(open(item_detail_url(id)))
-  end
-
-  def extract_item_backup(doc)
+  def extract_item_backup(content)
+    doc = Nokogiri::HTML(content)
     backup = []
     doc.xpath("//table[@id=\"tblMaterials\"]//td[@class=\"tabledata\"]").each do |cell|
       m = cell.xpath("//a").first["href"].match(/fileid=([\d]+)/)
